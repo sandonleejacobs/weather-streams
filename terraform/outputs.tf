@@ -25,3 +25,20 @@ output "cc_schema_registry_id" {
 output "cc_schema_registry_endpoint" {
   value = confluent_schema_registry_cluster.essentials.rest_endpoint
 }
+
+output "flink_weather_compute_pool_1_id" {
+  value = confluent_flink_compute_pool.weather_compute_pool_1.id
+}
+
+output "flink_weather_compute_pool_1_display_name" {
+  value = confluent_flink_compute_pool.weather_compute_pool_1.display_name
+}
+
+output "flink_weather_compute_pool_1_rest_endpoint" {
+  value = confluent_flink_compute_pool.weather_compute_pool_1.rest_endpoint
+}
+
+output "flink_weather_compute_pool_1_resource_name" {
+  value = confluent_flink_compute_pool.weather_compute_pool_1.resource_name
+}
+
