@@ -17,3 +17,11 @@ output "cc_kafka_cluster_bootstrap_endpoint" {
 output "cc_kafka_cluster_rest_endpoint" {
   value = confluent_kafka_cluster.basic.rest_endpoint
 }
+
+output "cc_schema_registry_id" {
+  value = confluent_schema_registry_cluster.essentials.id
+}
+
+output "cc_schema_registry_endpoint" {
+  value = confluent_schema_registry_cluster.essentials.rest_endpoint
+}
