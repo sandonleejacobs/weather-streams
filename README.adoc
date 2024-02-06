@@ -1,0 +1,4 @@
+= Weather Streams
+
+Using NOAA APi data to showcase features of Confluent Cloud - including Apache Kafka, Kafka Connect,
+Confluent Schema Registry, Flink SQL on Confluent Cloud, and Terraform Confluent Provider.
