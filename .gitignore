@@ -1,0 +1,9 @@
+.idea/
+
+*.iml
+
+
+**/.terraform
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/tfplan
