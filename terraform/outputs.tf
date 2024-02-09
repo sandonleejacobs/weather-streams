@@ -42,3 +42,14 @@ output "flink_weather_compute_pool_1_resource_name" {
   value = confluent_flink_compute_pool.weather_compute_pool_1.resource_name
 }
 
+output "topic_name_noa_zones_in" {
+  value =  confluent_kafka_topic.noaa_zones_inbound.topic_name
+}
+
+output "topic_name_noa_active_alerts_id" {
+  value =  confluent_kafka_topic.noaa_alerts_active_inbound.topic_name
+}
+
+output "connector_noaa_zones_source" {
+  value = confluent_connector.noaa-zones-source.id
+}

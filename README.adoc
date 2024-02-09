@@ -2,3 +2,12 @@
 
 Using NOAA APi data to showcase features of Confluent Cloud - including Apache Kafka, Kafka Connect,
 Confluent Schema Registry, Flink SQL on Confluent Cloud, and Terraform Confluent Provider.
+
+== Sourcing Data
+
+=== NOAA Weather APIs
+
+=== Kafka Connect
+
+
+== Active Data Transformation
