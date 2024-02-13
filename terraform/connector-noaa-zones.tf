@@ -23,7 +23,7 @@ resource "confluent_connector" "noaa_zones_source" {
     "http.offset.mode"         = "SIMPLE_INCREMENTING"
     "http.initial.offset"      = "0"
     "http.response.data.json.pointer" = "/features"
-    "request.interval.ms"      = 180000
+    "request.interval.ms"      = 1800000
 
     "transforms"                            = "DropUnusedFields,Flatten,RenameFields,MakeEventKey"
     "transforms.DropUnusedFields.type"      = "org.apache.kafka.connect.transforms.ReplaceField$Value"
