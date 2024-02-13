@@ -7,7 +7,129 @@ Confluent Schema Registry, Flink SQL on Confluent Cloud, and Terraform Confluent
 
 === NOAA Weather APIs
 
-=== Kafka Connect
+The National Oceanic and Atmospheric Administration provides a free API with access to forecasts, alerts and observations.
+https://www.weather.gov/documentation/services-web-api[Per their documentation]:
+
+    All of the information presented via the API is intended to be open data, free to use for any purpose. As a public service of the United States Government, we do not charge any fees for the usage of this service, although there are reasonable rate limits in place to prevent abuse and help ensure that everyone has access. The rate limit is not public information, but allows a generous amount for typical use. If the rate limit is execeed a request will return with an error, and may be retried after the limit clears (typically within 5 seconds). Proxies are more likely to reach the limit, whereas requests directly from clients are not likely.
+
+.For purposes of this demo, we plan to use:
+* `/zones` - get the latest Zone definitions. These are fairly "static" in nature, so we will infrequently request this data.
+* `/alerts/active` - get ACTIVE weather alerts. This will include updates and cancellations of those alerts.
+
+=== Confluent Cloud Assets
+
+Given this data is exposed via an HTTP endpoint, we can utilize the HTTP Source Connector to load the results of these
+endpoints into Kafka topics. I chose to use the Confluent Terraform Provider to provision the Confluent Cloud resources
+needed for this demo.
+
+==== Confluent Cloud Environment
+Let's start by provisioning a Confluent Cloud Environment, including a Kafka cluster and Schema Registry.
+
+In terraform, our environment looks like this:
+```
+resource "confluent_environment" "cc_env" {
+  display_name = var.cc_env_display_name
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+```
+
+Now we can provision a Kafka cluster and Schema Registry:
+[%collapsible]
+====
+```
+resource "confluent_kafka_cluster" "basic" {
+  display_name = var.cc_cluster_name
+  availability = "SINGLE_ZONE"
+  cloud        = var.cloud_provider
+  region       = var.cloud_region
+  basic {}
+  environment {
+    id = confluent_environment.cc_env.id
+  }
+}
+...
+
+resource "confluent_schema_registry_cluster" "essentials" {
+  package = data.confluent_schema_registry_region.essentials.package
+
+  environment {
+    id = confluent_environment.cc_env.id
+  }
+
+  region {
+    id = data.confluent_schema_registry_region.essentials.id
+  }
+}
+```
+====
+
+
+==== Kafka Topics and Schemas
+We should create the Kafka topics to which we want to land the data from our API calls.
+
+For Zones, we create a compacted Kafka topic named `NoaaZonesInbound` with 3 partitions:
+[%collapsible]
+====
+```
+resource "confluent_kafka_topic" "noaa_zones_inbound" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.basic.id
+  }
+
+  topic_name    = "NoaaZonesInbound"
+  rest_endpoint = confluent_kafka_cluster.basic.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+
+  partitions_count = 3
+  config = {
+    "cleanup.policy" = "compact"
+  }
+
+  depends_on = [
+    confluent_schema_registry_cluster.essentials
+  ]
+}
+```
+====
+
+For our Active Alerts data, we create a compacted Kafka topic named `NoaaAlertsActiveInbound` with 6 partitons:
+[%collapsible]
+====
+```
+resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.basic.id
+  }
+
+  topic_name       = "NoaaAlertsActiveInbound"
+  rest_endpoint      = confluent_kafka_cluster.basic.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+
+  partitions_count = 3
+  config = {
+    "cleanup.policy" = "compact"
+  }
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  depends_on = [
+    confluent_schema_registry_cluster.essentials
+  ]
+}
+```
+====
+
+==== HTTP Source Connectors
 
 
 == Active Data Transformation
