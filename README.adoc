@@ -10,7 +10,8 @@ Confluent Schema Registry, Flink SQL on Confluent Cloud, and Terraform Confluent
 The National Oceanic and Atmospheric Administration provides a free API with access to forecasts, alerts and observations.
 https://www.weather.gov/documentation/services-web-api[Per their documentation]:
 
-    All of the information presented via the API is intended to be open data, free to use for any purpose. As a public service of the United States Government, we do not charge any fees for the usage of this service, although there are reasonable rate limits in place to prevent abuse and help ensure that everyone has access. The rate limit is not public information, but allows a generous amount for typical use. If the rate limit is execeed a request will return with an error, and may be retried after the limit clears (typically within 5 seconds). Proxies are more likely to reach the limit, whereas requests directly from clients are not likely.
+[quote]
+All of the information presented via the API is intended to be open data, free to use for any purpose. As a public service of the United States Government, we do not charge any fees for the usage of this service, although there are reasonable rate limits in place to prevent abuse and help ensure that everyone has access. The rate limit is not public information, but allows a generous amount for typical use. If the rate limit is execeed a request will return with an error, and may be retried after the limit clears (typically within 5 seconds). Proxies are more likely to reach the limit, whereas requests directly from clients are not likely.
 
 .For purposes of this demo, we plan to use:
 * `/zones` - get the latest Zone definitions. These are fairly "static" in nature, so we will infrequently request this data.
