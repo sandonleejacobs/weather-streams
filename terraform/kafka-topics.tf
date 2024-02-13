@@ -7,8 +7,8 @@ resource "confluent_kafka_topic" "noaa_zones_inbound" {
   topic_name       = "NoaaZonesInbound"
   rest_endpoint      = confluent_kafka_cluster.basic.rest_endpoint
   credentials {
-    key    = confluent_api_key.kafka_api_key.id
-    secret = confluent_api_key.kafka_api_key.secret
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
   }
 
   partitions_count = 1
@@ -19,10 +19,10 @@ resource "confluent_kafka_topic" "noaa_zones_inbound" {
     prevent_destroy = false
   }
 
-  depends_on = [
-    confluent_role_binding.cluster_admin_rb,
-    confluent_schema_registry_cluster.essentials
-  ]
+#  depends_on = [
+#    confluent_role_binding.cluster_admin_rb,
+#    confluent_schema_registry_cluster.essentials
+#  ]
 }
 
 # inbound active alerts
@@ -34,8 +34,8 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
   topic_name       = "NoaaAlertsActiveInbound"
   rest_endpoint      = confluent_kafka_cluster.basic.rest_endpoint
   credentials {
-    key    = confluent_api_key.kafka_api_key.id
-    secret = confluent_api_key.kafka_api_key.secret
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
   }
 
   partitions_count = 3
@@ -46,8 +46,8 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
     prevent_destroy = false
   }
 
-  depends_on = [
-    confluent_role_binding.cluster_admin_rb,
-    confluent_schema_registry_cluster.essentials
-  ]
+#  depends_on = [
+#    confluent_role_binding.cluster_admin_rb,
+#    confluent_schema_registry_cluster.essentials
+#  ]
 }
