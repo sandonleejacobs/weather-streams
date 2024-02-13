@@ -1,0 +1,345 @@
+{
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "type",
+      "type": "string"
+    },
+    {
+      "default": null,
+      "name": "geometry",
+      "type": ["null", {
+        "connect.name": "geometry",
+        "fields": [
+          {
+            "name": "type",
+            "type": "string"
+          },
+          {
+            "name": "coordinates",
+            "type": {
+              "items": {
+                "items": {
+                  "items": "double",
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            }
+          }
+        ],
+        "name": "geometry",
+        "type": "record"
+      }]
+    },
+    {
+      "name": "properties",
+      "type": {
+        "connect.name": "properties",
+        "fields": [
+          {
+            "name": "x_40id",
+            "type": "string"
+          },
+          {
+            "name": "x_40type",
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "areaDesc",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "geocode",
+            "type": {
+              "connect.name": "properties.geocode",
+              "fields": [
+                {
+                  "name": "SAME",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "UGC",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                }
+              ],
+              "name": "geocode",
+              "namespace": "properties",
+              "type": "record"
+            }
+          },
+          {
+            "name": "affectedZones",
+            "type": ["null", {
+              "items": "string",
+              "type": "array"
+            }],
+            "default": null
+          },
+          {
+            "name": "references",
+            "type": {
+              "items": {
+                "connect.name": "properties.references",
+                "fields": [
+                  {
+                    "name": "x_40id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "identifier",
+                    "type": "string"
+                  },
+                  {
+                    "name": "sender",
+                    "type": "string"
+                  },
+                  {
+                    "name": "sent",
+                    "type": {
+                      "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                      "connect.version": 1,
+                      "logicalType": "timestamp-millis",
+                      "type": "long"
+                    }
+                  }
+                ],
+                "name": "references",
+                "namespace": "properties",
+                "type": "record"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "name": "sent",
+            "type": [
+              "null",
+              {
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "connect.version": 1,
+                "logicalType": "timestamp-millis",
+                "type": "long"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "effective",
+            "type": [
+              "null",
+              {
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "connect.version": 1,
+                "logicalType": "timestamp-millis",
+                "type": "long"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "onset",
+            "type": [
+              "null",
+              {
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "connect.version": 1,
+                "logicalType": "timestamp-millis",
+                "type": "long"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "expires",
+            "type": [
+              "null",
+              {
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "connect.version": 1,
+                "logicalType": "timestamp-millis",
+                "type": "long"
+              }
+            ],
+            "default": null
+          },
+          {
+            "default": null,
+            "name": "ends",
+            "type": [
+              "null",
+              {
+                "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                "connect.version": 1,
+                "logicalType": "timestamp-millis",
+                "type": "long"
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "type": "string"
+          },
+          {
+            "name": "messageType",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "severity",
+            "type": "string"
+          },
+          {
+            "name": "certainty",
+            "type": "string"
+          },
+          {
+            "name": "urgency",
+            "type": "string"
+          },
+          {
+            "name": "event",
+            "type": "string"
+          },
+          {
+            "name": "sender",
+            "type": "string"
+          },
+          {
+            "name": "senderName",
+            "type": "string"
+          },
+          {
+            "name": "headline",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "default": null,
+            "name": "instruction",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          {
+            "name": "response",
+            "type": "string"
+          },
+          {
+            "name": "parameters",
+            "type": {
+              "connect.name": "properties.parameters",
+              "fields": [
+                {
+                  "name": "AWIPSidentifier",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "WMOidentifier",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "NWSheadline",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "BLOCKCHANNEL",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "EAS_ORG",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "VTEC",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                },
+                {
+                  "name": "eventEndingTime",
+                  "type": ["null", {
+                      "items": {
+                        "connect.name": "org.apache.kafka.connect.data.Timestamp",
+                        "connect.version": 1,
+                        "logicalType": "timestamp-millis",
+                        "type": "long"
+                      },
+                      "type": "array"
+                    }
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "expiredReferences",
+                  "type": ["null", {
+                    "items": "string",
+                    "type": "array"
+                  }],
+                  "default": null
+                }
+              ],
+              "name": "parameters",
+              "namespace": "properties",
+              "type": "record"
+            }
+          }
+        ],
+        "name": "properties",
+        "type": "record"
+      }
+    }
+  ],
+  "name": "ConnectDefault",
+  "namespace": "io.confluent.connect.avro",
+  "type": "record"
+}
