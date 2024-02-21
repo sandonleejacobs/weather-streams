@@ -1,0 +1,226 @@
+[
+  {
+    "state": "ALABAMA",
+    "abbrev": "AL"
+  },
+  {
+    "state": "ALASKA",
+    "abbrev": "AK"
+  },
+  {
+    "state": "AMERICAN SAMOA",
+    "abbrev": "AS"
+  },
+  {
+    "state": "ARIZONA",
+    "abbrev": "AZ"
+  },
+  {
+    "state": "ARKANSAS",
+    "abbrev": "AR"
+  },
+  {
+    "state": "CALIFORNIA",
+    "abbrev": "CA"
+  },
+  {
+    "state": "COLORADO",
+    "abbrev": "CO"
+  },
+  {
+    "state": "CONNECTICUT",
+    "abbrev": "CT"
+  },
+  {
+    "state": "DELAWARE",
+    "abbrev": "DE"
+  },
+  {
+    "state": "DISTRICT OF COLUMBIA",
+    "abbrev": "DC"
+  },
+  {
+    "state": "FLORIDA",
+    "abbrev": "FL"
+  },
+  {
+    "state": "GEORGIA",
+    "abbrev": "GA"
+  },
+  {
+    "state": "GUAM",
+    "abbrev": "GU"
+  },
+  {
+    "state": "HAWAII",
+    "abbrev": "HI"
+  },
+  {
+    "state": "IDAHO",
+    "abbrev": "ID"
+  },
+  {
+    "state": "ILLINOIS",
+    "abbrev": "IL"
+  },
+  {
+    "state": "INDIANA",
+    "abbrev": "IN"
+  },
+  {
+    "state": "IOWA",
+    "abbrev": "IA"
+  },
+  {
+    "state": "KANSAS",
+    "abbrev": "KS"
+  },
+  {
+    "state": "KENTUCKY",
+    "abbrev": "KY"
+  },
+  {
+    "state": "LOUISIANA",
+    "abbrev": "LA"
+  },
+  {
+    "state": "MAINE",
+    "abbrev": "ME"
+  },
+  {
+    "state": "MARYLAND",
+    "abbrev": "MD"
+  },
+  {
+    "state": "MASSACHUSETTS",
+    "abbrev": "MA"
+  },
+  {
+    "state": "MICHIGAN",
+    "abbrev": "MI"
+  },
+  {
+    "state": "MINNESOTA",
+    "abbrev": "MN"
+  },
+  {
+    "state": "MISSISSIPPI",
+    "abbrev": "MS"
+  },
+  {
+    "state": "MISSOURI",
+    "abbrev": "MO"
+  },
+  {
+    "state": "MONTANA",
+    "abbrev": "MT"
+  },
+  {
+    "state": "NEBRASKA",
+    "abbrev": "NE"
+  },
+  {
+    "state": "NEVADA",
+    "abbrev": "NV"
+  },
+  {
+    "state": "NEW HAMPSHIRE",
+    "abbrev": "NH"
+  },
+  {
+    "state": "NEW JERSEY",
+    "abbrev": "NJ"
+  },
+  {
+    "state": "NEW MEXICO",
+    "abbrev": "NM"
+  },
+  {
+    "state": "NEW YORK",
+    "abbrev": "NY"
+  },
+  {
+    "state": "NORTH CAROLINA",
+    "abbrev": "NC"
+  },
+  {
+    "state": "NORTH DAKOTA",
+    "abbrev": "ND"
+  },
+  {
+    "state": "NORTHERN MARIANA IS",
+    "abbrev": "MP"
+  },
+  {
+    "state": "OHIO",
+    "abbrev": "OH"
+  },
+  {
+    "state": "OKLAHOMA",
+    "abbrev": "OK"
+  },
+  {
+    "state": "OREGON",
+    "abbrev": "OR"
+  },
+  {
+    "state": "PENNSYLVANIA",
+    "abbrev": "PA"
+  },
+  {
+    "state": "PUERTO RICO",
+    "abbrev": "PR"
+  },
+  {
+    "state": "RHODE ISLAND",
+    "abbrev": "RI"
+  },
+  {
+    "state": "SOUTH CAROLINA",
+    "abbrev": "SC"
+  },
+  {
+    "state": "SOUTH DAKOTA",
+    "abbrev": "SD"
+  },
+  {
+    "state": "TENNESSEE",
+    "abbrev": "TN"
+  },
+  {
+    "state": "TEXAS",
+    "abbrev": "TX"
+  },
+  {
+    "state": "UTAH",
+    "abbrev": "UT"
+  },
+  {
+    "state": "VERMONT",
+    "abbrev": "VT"
+  },
+  {
+    "state": "VIRGINIA",
+    "abbrev": "VA"
+  },
+  {
+    "state": "VIRGIN ISLANDS",
+    "abbrev": "VI"
+  },
+  {
+    "state": "WASHINGTON",
+    "abbrev": "WA"
+  },
+  {
+    "state": "WEST VIRGINIA",
+    "abbrev": "WV"
+  },
+  {
+    "state": "WISCONSIN",
+    "abbrev": "WI"
+  },
+  {
+    "state": "WYOMING",
+    "abbrev": "WY"
+  }
+]

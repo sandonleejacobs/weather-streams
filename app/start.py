@@ -1,13 +1,45 @@
 import asyncio
 import random
-import altair as alt
+import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid.shared import GridUpdateMode
 from pandas import DataFrame
 
 from api.auth import AuthEndpoint
 from api.statements import StatementsEndpoint
 from lib.config import Config
 from lib.flink import Changelog
+
+
+def aggrid_interactive_table(df: pd.DataFrame):
+    """Creates an st-aggrid interactive table based on a dataframe.
+
+    Args:
+        df (pd.DataFrame]): Source dataframe
+
+    Returns:
+        dict: The selected row
+    """
+    options = GridOptionsBuilder.from_dataframe(
+        df, enableRowGroup=True, enableValue=True, enablePivot=True,
+    )
+
+    options.configure_side_bar()
+
+    options.configure_selection("single")
+    selection = AgGrid(
+        df,
+        enable_enterprise_modules=True,
+        gridOptions=options.build(),
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        allow_unsafe_jscode=True,
+        height=500, width=200
+    )
+
+    return selection
+
+
 
 async def query(conf, sql, continuous_query):
     auth = AuthEndpoint(conf)
@@ -50,27 +82,46 @@ async def populate_table(widget, sql, continuous_query):
 
 
 async def main():
-    st.title("Streamlit Weather on Confluent Cloud for Flink")
-    
-    col1, col2 = st.columns(2)
+    # st.title("Weather on Confluent Cloud from Flink")
+    # col1, col2 = st.columns(2)
+    #
+    # with col1:
+    #     st.header("States")
+
+    st.set_page_config(
+        layout="wide", page_icon="🖱️", page_title="Interactive Weather app"
+    )
+    st.title("🖱️ Interactive Weather App")
+    st.write(
+        """This app shows how you can use the streamlit-aggrid
+        Streamlit component in an interactive way so as to display additional content 
+        based on user click."""
+    )
+
+    st.write("Go ahead, click on a row in the table below!")
+
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.header("States")
-        states_table = st.empty()
 
-        # st.header("Graphs")
-        # average_balance_table = st.empty()
+        selection = aggrid_interactive_table(df=pd.read_json('./data/states.json'))
+        if selection:
+            st.write("You selected:")
+            st.json(selection["selected_rows"])
 
     with col2:
-        st.header("Maps")
-        map_of_users = st.empty()
+        st.header("Active Alerts")
+        active_alerts = st.empty()
 
-    states_table_query = """
-        select distinct(state) as state from NoaaZonesInbound limit 60;
-        """
-    await asyncio.gather(
-        populate_table(states_table, states_table_query, continuous_query=True)
-    )
+    # states_table_query = """
+    #     select distinct(state) as state from NoaaZonesInbound limit 60;
+    #     """
+    # await asyncio.gather(
+    #     populate_table(states_table, states_table_query, continuous_query=True)
+    # )
+
+
 
 
 # if __name__ == "__main__":
