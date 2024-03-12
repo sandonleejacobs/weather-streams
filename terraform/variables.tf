@@ -36,3 +36,9 @@ variable "cc_cluster_name" {
   default = "weather-cluster-1"
 }
 
+
+variable "org_id" {
+  type = string
+  default = "2929cae7-840e-47d3-b6f5-67d03587cd01"
+}
+

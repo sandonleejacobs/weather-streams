@@ -35,7 +35,8 @@ output "flink_weather_compute_pool_1_display_name" {
 }
 
 output "flink_weather_compute_pool_1_rest_endpoint" {
-  value = confluent_flink_compute_pool.weather_compute_pool_1.rest_endpoint
+#  value = confluent_flink_compute_pool.weather_compute_pool_1.rest_endpoint
+  value = data.confluent_flink_region.main.rest_endpoint
 }
 
 output "flink_weather_compute_pool_1_resource_name" {
@@ -75,3 +76,8 @@ output "key_secret" {
   value = nonsensitive(confluent_api_key.app-manager-kafka-api-key.secret)
 #  sensitive = false
 }
+
+
+#output "flink_timestamp" {
+#  value = confluent_flink_statement.select-current-timestamp.
+#}
