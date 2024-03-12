@@ -1,4 +1,4 @@
-create table WsActiveAlertsByZone (
+create table ws_active_alerts_by_zone (
     alertId STRING,
     zoneId STRING,
     zoneUrl STRING,

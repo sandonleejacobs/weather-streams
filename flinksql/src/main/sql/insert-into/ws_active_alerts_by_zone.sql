@@ -1,4 +1,4 @@
-insert into WsActiveAlertsByZone select
+insert into ws_active_alerts_by_zone select
     active.`id` as `alertId`,
     `ActiveAlertsByUgcCode`.geocodeugc as `zoneId`,
     zone.`url` as `zoneUrl`,
