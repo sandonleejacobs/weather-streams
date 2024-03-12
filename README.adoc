@@ -242,7 +242,9 @@ reflected elsewhere in the dataset.
 For the active alerts data, we only need one transformation - to create a key for the Kafka events written to the compacted topic.
 [%collapsible]
 ====
+```
 "transforms"                            = "MakeEventKey"
 "transforms.MakeEventKey.type"          = "org.apache.kafka.connect.transforms.ValueToKey"
 "transforms.MakeEventKey.fields"        = "id"
+```
 ====

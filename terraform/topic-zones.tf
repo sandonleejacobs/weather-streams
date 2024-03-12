@@ -11,9 +11,9 @@ resource "confluent_kafka_topic" "noaa_zones_inbound" {
     secret = confluent_api_key.app-manager-kafka-api-key.secret
   }
 
-  partitions_count = 1
+  partitions_count = 3
   config           = {
-    "cleanup.policy" = "compact"
+    "cleanup.policy" = "delete"
   }
   lifecycle {
     prevent_destroy = false
@@ -64,7 +64,7 @@ resource "confluent_subject_config" "noaa_zones_inbound_value_cfg" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   depends_on = [

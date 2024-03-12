@@ -19,7 +19,7 @@ resource "confluent_connector" "noaa_alerts_source" {
     "tasks.max"                = "1"
     "topic.name.pattern"       = confluent_kafka_topic.noaa_alerts_active_inbound.topic_name
     "url"                      = "https://api.weather.gov/alerts/active"
-    "http.request.parameters"  = "status=actual&limit=10"
+    "http.request.parameters"  = "status=actual&limit=100"
     "http.offset.mode"         = "SIMPLE_INCREMENTING"
     "http.initial.offset"      = "0"
     "http.response.data.json.pointer" = "/features"

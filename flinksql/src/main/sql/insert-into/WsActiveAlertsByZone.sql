@@ -19,9 +19,9 @@ insert into WsActiveAlertsByZone select
     active.`sender` as `sender`,
     active.`onset` as `onsetTs`,
     active.`effective` as `effectiveTs`,
-    active.`expiry` as `expiryTs`,
-    active.`end` as `endTs`,
-    active.`NWSHeadline` as `nwsHeadline`
+    active.`expires` as `expiryTs`,
+    active.`ends` as `endTs`,
+    active.`NWSheadline` as `nwsHeadline`
 from ws_active_alerts active
     CROSS JOIN UNNEST(active.geocodeUGC) as `ActiveAlertsByUgcCode`(geocodeugc)
 join NoaaZonesInbound zone

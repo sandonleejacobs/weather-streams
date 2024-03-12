@@ -28,4 +28,4 @@ with (
     'key.format' = 'avro-registry',
     'value.format' = 'avro-registry',
     'changelog.mode' = 'upsert',
-    'kafka.cleanup-policy' = 'compact');
+    'kafka.cleanup-policy' = 'delete');

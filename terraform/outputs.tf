@@ -53,3 +53,25 @@ output "topic_name_noa_active_alerts_id" {
 #output "connector_noaa_zones_source" {
 #  value = confluent_connector.noaa_zones_source.id
 #}
+
+output "sr_key_id" {
+  value = confluent_api_key.env-manager-schema-registry-api-key.id
+  sensitive = false
+}
+
+
+output "sr_key_secret" {
+  value = nonsensitive(confluent_api_key.env-manager-schema-registry-api-key.secret)
+#  sensitive = false
+}
+
+
+output "key_id" {
+  value = confluent_api_key.app-manager-kafka-api-key.id
+  sensitive = false
+}
+
+output "key_secret" {
+  value = nonsensitive(confluent_api_key.app-manager-kafka-api-key.secret)
+#  sensitive = false
+}

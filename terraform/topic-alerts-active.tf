@@ -13,7 +13,7 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
 
   partitions_count = 3
   config = {
-    "cleanup.policy" = "compact"
+    "cleanup.policy" = "delete"
   }
   lifecycle {
     prevent_destroy = false
@@ -64,7 +64,7 @@ resource "confluent_subject_config" "noaa_alerts_active_inbound_value_cfg" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   depends_on = [
