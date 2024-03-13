@@ -35,8 +35,8 @@ resource "confluent_kafka_cluster" "basic" {
 // 'app-manager' service account is required in this configuration to create 'purchase' topic and grant ACLs
 // to 'app-producer' and 'app-consumer' service accounts.
 resource "confluent_service_account" "app-manager" {
-  display_name = "app-manager"
-  description  = "Service account to manage 'inventory' Kafka cluster"
+  display_name = "${var.cc_env_display_name}-app-manager"
+  description  = "Service account to manage 'weather-streams' Kafka cluster"
 }
 
 resource "confluent_role_binding" "app-manager-kafka-cluster-admin" {
@@ -77,7 +77,7 @@ resource "confluent_api_key" "app-manager-kafka-api-key" {
 }
 
 resource "confluent_service_account" "env-manager" {
-  display_name = "env-manager"
+  display_name = "${var.cc_env_display_name}-env-manager"
   description  = "Service account to manage 'Staging' environment"
 }
 

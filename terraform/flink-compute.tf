@@ -2,7 +2,7 @@ resource "confluent_flink_compute_pool" "weather_compute_pool_1" {
   display_name     = "weather_compute_pool_1"
   cloud            = var.cloud_provider
   region           = var.cloud_region
-  max_cfu          = 5
+  max_cfu          = 10
   environment {
     id = confluent_environment.cc_env.id
   }
@@ -21,7 +21,7 @@ resource "confluent_flink_compute_pool" "weather_compute_pool_1" {
 
 // Service account to perform a task within Confluent Cloud, such as executing a Flink statement
 resource "confluent_service_account" "statements-runner" {
-  display_name = "statements-runner"
+  display_name = "${var.cc_env_display_name}-statements-runner"
   description  = "Service account for running Flink Statements in 'inventory' Kafka cluster"
 
   lifecycle {
@@ -93,23 +93,3 @@ resource "confluent_api_key" "app-manager-flink-api-key" {
   }
 }
 
-resource "confluent_flink_statement" "select-current-timestamp" {
-  organization {
-    id = data.confluent_organization.main.id
-  }
-  environment {
-    id = confluent_environment.cc_env.id
-  }
-  compute_pool {
-    id = confluent_flink_compute_pool.weather_compute_pool_1.id
-  }
-  principal {
-    id = confluent_service_account.statements-runner.id
-  }
-  statement     = "SELECT CURRENT_TIMESTAMP;"
-  rest_endpoint = data.confluent_flink_region.main.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-flink-api-key.id
-    secret = confluent_api_key.app-manager-flink-api-key.secret
-  }
-}

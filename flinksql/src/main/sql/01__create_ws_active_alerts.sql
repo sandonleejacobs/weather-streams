@@ -27,6 +27,3 @@ create table ws_active_alerts (
     `expiredReferences` ARRAY<STRING>,
     WATERMARK for `onset` AS `onset` - INTERVAL '5' MINUTE)
 with ('value.format' = 'avro-registry', 'changelog.mode' = 'upsert', 'kafka.cleanup-policy' = 'delete');
-
-
-

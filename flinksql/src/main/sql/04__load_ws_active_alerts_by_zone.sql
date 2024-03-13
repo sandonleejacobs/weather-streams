@@ -24,5 +24,5 @@ insert into ws_active_alerts_by_zone select
     active.`NWSheadline` as `nwsHeadline`
 from ws_active_alerts active
     CROSS JOIN UNNEST(active.geocodeUGC) as `ActiveAlertsByUgcCode`(geocodeugc)
-join NoaaZonesInbound zone
+inner join NoaaZonesInbound zone
     on `ActiveAlertsByUgcCode`.geocodeugc = zone.id;
