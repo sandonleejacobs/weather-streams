@@ -132,10 +132,10 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
 
 == Next Steps
 
-Now we're ready to load some data into Kafka. For that, see link:../terraform/CONNECT.adoc[Sourcing Data with Kafka Connect].
+Now we're ready to load some data into Kafka. For that, see link:terraform/CONNECT.adoc[Sourcing Data with Kafka Connect].
 
 Once data is flowing into Kafka, it's time to transform and enrich that data using Flink SQL. We cover that
-in link:../flinksql/README.adoc[Applying Flink SQL].
+in link:flinksql/README.adoc[Applying Flink SQL].
 
 == Try For Yourself
 
