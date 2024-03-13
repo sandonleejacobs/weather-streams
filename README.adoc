@@ -130,121 +130,14 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
 ```
 ====
 
-==== HTTP Source Connectors
-How we're ready to source the data from the NOAA APIs into Kafka. To do so, let's create a couple of HTTP Source Connectors
-Yes, with terraform...
+== Next Steps
 
-Every 30 minutes, let's use the `/zones` endpoint to update the Zone definitions in Kafka. This connector polls the
-endpoint, iterates over the `features` collection returned from the call, and writes those events to the `NoaaZonesInbound`
-topic defined above:
-[%collapsible]
-====
-```
-resource "confluent_connector" "noaa_zones_source" {
-  environment {
-    id = confluent_environment.cc_env.id
-  }
-  kafka_cluster {
-    id = confluent_kafka_cluster.basic.id
-  }
+Now we're ready to load some data into Kafka. For that, see link:../terraform/CONNECT.adoc[Sourcing Data with Kafka Connect].
 
-  config_sensitive = {}
+Once data is flowing into Kafka, it's time to transform and enrich that data using Flink SQL. We cover that
+in link:../flinksql/README.adoc[Applying Flink SQL].
 
-  config_nonsensitive = {
-    "connector.class"          = "HttpSource"
-    "name"                     = "http_src_noaa_zones"
-    "kafka.auth.mode"          = "KAFKA_API_KEY"
-    "kafka.api.key"            = confluent_api_key.app-manager-kafka-api-key.id
-    "kafka.api.secret"         = confluent_api_key.app-manager-kafka-api-key.secret
-    "kafka.topic"              = confluent_kafka_topic.noaa_zones_inbound.topic_name
-    "output.data.format"       = "AVRO"
-    "tasks.max"                = "1"
-    "topic.name.pattern"       = confluent_kafka_topic.noaa_zones_inbound.topic_name
-    "url"                      = "https://api.weather.gov/zones"
-    "http.request.parameters"  = "type=land"
-    "http.offset.mode"         = "SIMPLE_INCREMENTING"
-    "http.initial.offset"      = "0"
-    "http.response.data.json.pointer" = "/features"
-    "request.interval.ms"      = 1800000
+== Try For Yourself
 
-...
-}
-```
-====
-
-We also want to pull in active alerts, every 60 seconds since this data changes over time. This connector polls the
-active alerts endpoint, iterating over the `/features` collection, and writes those records to the `NoaaAlertsActiveInbound`
-kafka topic:
-[%collapsible]
-====
-```
-resource "confluent_connector" "noaa_alerts_source" {
-  environment {
-    id = confluent_environment.cc_env.id
-  }
-  kafka_cluster {
-    id = confluent_kafka_cluster.basic.id
-  }
-
-  config_sensitive = {}
-
-  config_nonsensitive = {
-    "connector.class"          = "HttpSource"
-    "name"                     = "http_src_noaa_alerts"
-    "kafka.auth.mode"          = "KAFKA_API_KEY"
-    "kafka.api.key"            = confluent_api_key.app-manager-kafka-api-key.id
-    "kafka.api.secret"         = confluent_api_key.app-manager-kafka-api-key.secret
-    "kafka.topic"              = confluent_kafka_topic.noaa_alerts_active_inbound.topic_name
-    "output.data.format"       = "AVRO"
-    "tasks.max"                = "1"
-    "topic.name.pattern"       = confluent_kafka_topic.noaa_alerts_active_inbound.topic_name
-    "url"                      = "https://api.weather.gov/alerts/active"
-    "http.request.parameters"  = "status=actual&limit=10"
-    "http.offset.mode"         = "SIMPLE_INCREMENTING"
-    "http.initial.offset"      = "0"
-    "http.response.data.json.pointer" = "/features"
-    "request.interval.ms"      = 60000
-...
-}
-```
-====
-
-==== Active Data Transformation
-So iterating over the `/features` collections in these scenarios is not enough to "shape" the data how we need it for
-future purposes. To do that, let's explore the world of https://docs.confluent.io/cloud/current/connectors/transforms/overview.html[Single Message Transformations (SMT) in Kafka Connect].
-
-For the Zones data, we use a series of SMTs to:
-[arabic]
-* There are fields we want to drop from the start - mainly because the naming convention and because those values are
-reflected elsewhere in the dataset.
-* Some of the data we need for our purposes is "nested" in other Structs, so let's flatten those elements.
-* Once flattened, we can rename those fields to make more sense in the ensuing Kafka data.
-* Finally, we need to create a key for the Kafka events written to the compacted topic.
-
-[%collapsible]
-====
-```
-"transforms"                            = "DropUnusedFields,Flatten,RenameFields,MakeEventKey"
-"transforms.DropUnusedFields.type"      = "org.apache.kafka.connect.transforms.ReplaceField$Value"
-"transforms.DropUnusedFields.exclude"   = "id,type"
-
-"transforms.Flatten.type"               = "org.apache.kafka.connect.transforms.Flatten$Value"
-"transforms.Flatten.delimiter"          = "_"
-
-"transforms.RenameFields.type"          = "org.apache.kafka.connect.transforms.ReplaceField$Value"
-"transforms.RenameFields.renames"       = "properties_@id:url,properties_@type:wxObjectType,properties_id:id,properties_type:zoneType,properties_name:name,properties_effectiveDate:effectiveDate,properties_expirationDate:expirationDate,properties_state:state,properties_cwa:cwas,properties_forecastOffices:forecastOffices,properties_timeZone:timeZones,properties_observationStations:observationStations,properties_radarStation:radarStation"
-
-"transforms.MakeEventKey.type"          = "org.apache.kafka.connect.transforms.ValueToKey"
-"transforms.MakeEventKey.fields"        = "id"
-```
-====
-
-For the active alerts data, we only need one transformation - to create a key for the Kafka events written to the compacted topic.
-[%collapsible]
-====
-```
-"transforms"                            = "MakeEventKey"
-"transforms.MakeEventKey.type"          = "org.apache.kafka.connect.transforms.ValueToKey"
-"transforms.MakeEventKey.fields"        = "id"
-```
-====
+If you're attending Kafka Summit London, stop by the DevX Pod at the Confluent booth to get promo code for Confluent Cloud.
+This should be sufficient for you to try this demo on your own and experiment with the data, connectors, and terraform.

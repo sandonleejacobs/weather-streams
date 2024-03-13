@@ -1,0 +1,272 @@
+= Applying Flink SQL
+
+IMPORTANT: The initial plan was to use the confluent terraform provider to provision the Flink SQL statements in this section.
+Per the https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_flink_statement[documentation], the
+`confluent_flink_statement` resource is only available in Preview. My experiments with it in this demo proved that to be the case. With that in mind,
+I have prefixed the `.sql` files in the `src/main/sql` directory with a numeric value to denote the order in which they should be applied using the
+Flink Workspace in the Flink Compute Pool provisioned by terraform.
+
+== Transforming Data
+In many cases, the data we receive from another party may not be in a "usable" or "friendly" state when initially presented
+to our data pipeline. We can use Flink SQL to perform transformations on the data to make for more simple operations downstream -
+such as aggregations and queries.
+
+=== Alerts
+
+The Simple Message Transformations (SMTs) in our HTTP Source Connector did the heavy lifting with regards to data transformations
+from the JSON responses into Kafka events like the one below:
+
+[%collapsible]
+====
+```
+{
+  "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d32fb3a1781de5831379f76862247226a3422cf6.012.1",
+  "type": "Feature",
+  "geometry": null,
+  "properties": {
+    "_40id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d32fb3a1781de5831379f76862247226a3422cf6.012.1",
+    "_40type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.d32fb3a1781de5831379f76862247226a3422cf6.012.1",
+    "areaDesc": "Clarence Strait",
+    "geocode": {
+      "SAME": [
+        "058036"
+      ],
+      "UGC": [
+        "PKZ036"
+      ]
+    },
+    "affectedZones": [
+      "https://api.weather.gov/zones/forecast/PKZ036"
+    ],
+    "references": [],
+    "sent": 1710199740000,
+    "effective": 1710199740000,
+    "onset": 1710766800000,
+    "expires": 1710260100000,
+    "ends": 1710853200000,
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Minor",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Small Craft Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Juneau AK",
+    "headline": "Small Craft Advisory issued March 11 at 3:29PM AKDT until March 19 at 5:00AM AKDT by NWS Juneau AK",
+    "description": "Southeast Alaska Inside Waters from Dixon Entrance to Skagway\n\nWind forecasts reflect the predominant speed and direction\nexpected. Sea forecasts represent the average of the highest\none-third of the combined windwave and swell height.\n\n.TONIGHT...SE wind 20 kt increasing to 25 kt then diminishing to\n20 kt late. Seas 9 ft. Rain.\n.TUE...SE wind 15 kt. Seas 6 ft. Rain.\n.TUE NIGHT...SE wind 15 kt becoming S late. Seas 5 ft, except\n8 ft near ocean entrances. Rain and snow.\n.WED...S wind 30 kt. Seas 10 ft. Rain.\n.WED NIGHT...S gale to 35 kt. Seas 11 ft. Rain.\n.THU...S wind 30 kt. Seas 11 ft.\n.FRI...SE wind 20 kt. Seas 7 ft.\n.SAT...SE wind 20 kt. Seas 4 ft.",
+    "instruction": null,
+    "response": "Avoid",
+    "parameters": {
+      "AWIPSidentifier": [
+        "CWFAJK"
+      ],
+      "WMOidentifier": [
+        "FZAK51 PAJK 112329"
+      ],
+      "NWSheadline": [
+        "SMALL CRAFT ADVISORY THROUGH LATE MONDAY NIGHT"
+      ],
+      "BLOCKCHANNEL": [
+        "EAS",
+        "NWEM",
+        "CMAS"
+      ],
+      "EAS_ORG": null,
+      "VTEC": [
+        "/O.NEW.PAJK.SC.Y.5656.240318T1300Z-240319T1300Z/"
+      ],
+      "eventEndingTime": [
+        1710853200000
+      ],
+      "expiredReferences": null,
+      "eventMotionDescription": null,
+      "maxWindGust": null,
+      "maxHailSize": null,
+      "windThreat": null,
+      "hailThreat": null
+    }
+  }
+}
+```
+====
+
+From here, we can use the elements of the `properties` object of the events in `NoaaAlertsActiveInbound` to populate a new
+Flink table with a more user-friendly schema. Let's name this new table `ws_active_alerts` and create it using as follows:
+
+[%collapsible]
+====
+```
+create table ws_active_alerts (
+    `id` STRING PRIMARY KEY NOT ENFORCED,
+    `areaDesc` STRING,
+    `geocodeSAME` ARRAY<STRING>,
+    `geocodeUGC` ARRAY<STRING>,
+    `affectedZones` ARRAY<STRING>,
+    `sent` TIMESTAMP(3),
+    `effective` TIMESTAMP(3),
+    `onset` TIMESTAMP(3),
+    `expires` TIMESTAMP(3),
+    `ends` TIMESTAMP(3),
+    `status` STRING,
+    `messageType` STRING,
+    `category` STRING,
+    `severity` STRING,
+    `certainty` STRING,
+    `urgency` STRING,
+    `event` STRING,
+    `sender` STRING,
+    `senderName` STRING,
+    `headline` STRING,
+    `description` STRING,
+    `instruction` STRING,
+    `response` STRING,
+    `NWSheadline` ARRAY<STRING>,
+    `eventEndingTime` ARRAY<TIMESTAMP(3)>,
+    `expiredReferences` ARRAY<STRING>,
+    WATERMARK for `onset` AS `onset` - INTERVAL '5' MINUTE)
+with ('value.format' = 'avro-registry', 'changelog.mode' = 'upsert', 'kafka.cleanup-policy' = 'delete');
+```
+====
+
+Now we can load the data from `NoaaAlertsActiveInbound` into `ws_active_alerts` with an `insert into select` statement. This
+statement will traverse into the `properties` object to get the nested fields needed.
+
+[%collapsible]
+====
+```
+insert into ws_active_alerts select
+   properties.id, properties.areaDesc,
+   properties.geocode.SAME as `geocodeSAME`, properties.geocode.UGC as `geocodeUGC`,
+   properties.affectedZones,
+   properties.sent, properties.effective, properties.onset, properties.expires,
+   properties.ends, properties.status, properties.messageType, properties.category, properties.severity,
+   properties.certainty, properties.urgency, properties.event, properties.sender, properties.senderName,
+   properties.headline, properties.description, properties.instruction, properties.response, properties.NWSheadline,
+   properties.eventEndingTime, properties.expiredReferences
+from NoaaAlertsActiveInbound;
+```
+====
+
+== Join Active Alerts to Affected Zones
+Looking at the `ws_active_alerts` table, you'll find the `geocodeUGC` column defined as type `ARRAY<STRING>` - containing
+the zone ID values corresponding to the `NoaaZonesInbound` table/topic.
+
+Below is an example of a event from `NoaaZonesInbound`:
+[%collapsible]
+====
+```
+{
+  "geometry": null,
+  "url": "https://api.weather.gov/zones/forecast/WYZ107",
+  "wxObjectType": "wx:Zone",
+  "id": "WYZ107",
+  "zoneType": "public",
+  "name": "East Platte County",
+  "effectiveDate": 1709661600000,
+  "expirationDate": 7258118400000,
+  "state": "WY",
+  "cwas": [
+    "CYS"
+  ],
+  "forecastOffices": [
+    "https://api.weather.gov/offices/CYS"
+  ],
+  "timeZones": [
+    "America/Denver"
+  ],
+  "observationStations": [
+    "https://api.weather.gov/stations/KCYS"
+  ],
+  "radarStation": null
+}
+```
+====
+
+The zone event contains the `state`, some display-friendly fields, and a URL back to the API for that specific zone. This URL
+can provide more detailed geographic info like the latitude-longitude coordinates of the zone. Now we start to see a picture
+of how this data could be used to plot an active alert on a map, similar to what you might see on a local newscast.
+
+From the `ws_active_alerts` table, we find that an alert can effect multiple zones. A use case for this data could be
+to query for the active alerts in a specific state. Therefore, we need to join every affected zone to the alert. We need to expand
+the alert data for that join - so we use `CROSS JOIN UNNEST()` create a row for each zone. (Those familiar with KSQLDB may
+recall the `EXPLODE` function which operates on `ARRAY` data types - this is similar.)
+
+Our target table is `ws_active_alerts_by_zone`:
+[%collapsible]
+====
+```
+create table ws_active_alerts_by_zone (
+    alertId STRING,
+    zoneId STRING,
+    zoneUrl STRING,
+    event STRING,
+    alertStatus STRING,
+    alertMessageType STRING,
+    zoneName STRING,
+    zoneState STRING,
+    category STRING,
+    severity STRING,
+    urgency STRING,
+    headline STRING,
+    description STRING,
+    instruction STRING,
+    response STRING,
+    zoneGeometry STRING,
+    sentTs TIMESTAMP_LTZ(3),
+    sender STRING,
+    onsetTs TIMESTAMP_LTZ(3),
+    effectiveTs TIMESTAMP_LTZ(3),
+    expiryTs TIMESTAMP_LTZ(3),
+    endTs TIMESTAMP_LTZ(3),
+    nwsHeadline ARRAY<STRING>,
+    PRIMARY KEY (alertId, zoneId) NOT ENFORCED
+)
+with (
+    'key.format' = 'avro-registry',
+    'value.format' = 'avro-registry',
+    'changelog.mode' = 'upsert',
+    'kafka.cleanup-policy' = 'delete');
+
+```
+====
+
+Let's populate `ws_active_alerts_by_zone` by joining `ws_active_alerts` with 'NoaaZoneInbound`:
+[%collapsible]
+====
+```
+insert into ws_active_alerts_by_zone select
+    active.`id` as `alertId`,
+    `ActiveAlertsByUgcCode`.geocodeugc as `zoneId`,
+    zone.`url` as `zoneUrl`,
+    active.`event` as `event`,
+    active.`status` as `alertStatus`,
+    active.`messageType` as `alertMessageType`,
+    zone.`name` as `zoneName`,
+    zone.`state` as `zoneState`,
+    active.`category` as `category`,
+    active.`severity` as `severity`,
+    active.`urgency` as `urgency`,
+    active.`headline` as `headline`,
+    active.`description` as `description`,
+    active.`instruction` as `instruction`,
+    active.`response` as `response`,
+    zone.`geometry` as `zoneGeometry`,
+    active.`sent` as `sentTs`,
+    active.`sender` as `sender`,
+    active.`onset` as `onsetTs`,
+    active.`effective` as `effectiveTs`,
+    active.`expires` as `expiryTs`,
+    active.`ends` as `endTs`,
+    active.`NWSheadline` as `nwsHeadline`
+from ws_active_alerts active
+    CROSS JOIN UNNEST(active.geocodeUGC) as `ActiveAlertsByUgcCode`(geocodeugc)
+inner join NoaaZonesInbound zone
+    on `ActiveAlertsByUgcCode`.geocodeugc = zone.id;
+```
+====
+
+Now we have a table which can satisfy the "alerts by zone in my state" use case previously described.
+
+
