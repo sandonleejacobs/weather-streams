@@ -1,0 +1,128 @@
+= Provisioning Confluent Cloud with Terraform
+
+== Confluent Cloud Environment
+Let's start by provisioning a Confluent Cloud Environment, including a Kafka cluster and Schema Registry.
+
+In terraform, our environment looks like this:
+```
+resource "confluent_environment" "cc_env" {
+  display_name = var.cc_env_display_name
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+```
+
+== Kafka Cluster
+Now we can provision a Kafka cluster and Schema Registry:
+[%collapsible]
+====
+```
+resource "confluent_kafka_cluster" "basic" {
+  display_name = var.cc_cluster_name
+  availability = "SINGLE_ZONE"
+  cloud        = var.cloud_provider
+  region       = var.cloud_region
+  basic {}
+  environment {
+    id = confluent_environment.cc_env.id
+  }
+}
+...
+
+resource "confluent_schema_registry_cluster" "essentials" {
+  package = data.confluent_schema_registry_region.essentials.package
+
+  environment {
+    id = confluent_environment.cc_env.id
+  }
+
+  region {
+    id = data.confluent_schema_registry_region.essentials.id
+  }
+}
+```
+====
+
+
+== Kafka Topics and Schemas
+We should create the Kafka topics to which we want to land the data from our API calls.
+
+For Zones, we create a compacted Kafka topic named `NoaaZonesInbound` with 3 partitions:
+[%collapsible]
+====
+```
+resource "confluent_kafka_topic" "noaa_zones_inbound" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.basic.id
+  }
+
+  topic_name    = "NoaaZonesInbound"
+  rest_endpoint = confluent_kafka_cluster.basic.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+
+  partitions_count = 3
+  config = {
+    "cleanup.policy" = "compact"
+  }
+
+  depends_on = [
+    confluent_schema_registry_cluster.essentials
+  ]
+}
+```
+====
+
+For our Active Alerts data, we create a compacted Kafka topic named `NoaaAlertsActiveInbound` with 6 partitons:
+[%collapsible]
+====
+```
+resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.basic.id
+  }
+
+  topic_name       = "NoaaAlertsActiveInbound"
+  rest_endpoint      = confluent_kafka_cluster.basic.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+
+  partitions_count = 3
+  config = {
+    "cleanup.policy" = "compact"
+  }
+
+  depends_on = [
+    confluent_schema_registry_cluster.essentials
+  ]
+}
+```
+====
+
+== Flink Compute Pool
+Later we will use Flink SQL to transform and join some data. So let's review the creation of a Flink Compute Pool:
+[%collapsible]
+====
+```
+resource "confluent_flink_compute_pool" "weather_compute_pool_1" {
+  display_name     = "weather_compute_pool_1"
+  cloud            = var.cloud_provider
+  region           = var.cloud_region
+  max_cfu          = 10
+  environment {
+    id = confluent_environment.cc_env.id
+  }
+
+}
+```
+====
+
+
+== Next Steps
+Now we're ready to load some data into Kafka. For that, see link:./CONNECT.adoc[Sourcing Data with Kafka Connect].

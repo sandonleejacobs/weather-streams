@@ -17,127 +17,1036 @@ All of the information presented via the API is intended to be open data, free t
 * `/zones` - get the latest Zone definitions. These are fairly "static" in nature, so we will infrequently request this data.
 * `/alerts/active` - get ACTIVE weather alerts. This will include updates and cancellations of those alerts.
 
-=== Confluent Cloud Assets
+== Confluent Cloud Assets
+In this repo we use the Confluent Terraform Provider to provision the Confluent Cloud assets needed to load and process
+the data from the NOAA APIs.
 
-Given this data is exposed via an HTTP endpoint, we can utilize the HTTP Source Connector to load the results of these
-endpoints into Kafka topics. I chose to use the Confluent Terraform Provider to provision the Confluent Cloud resources
-needed for this demo.
+.There are some prerequisites for this using demo:
+* link:https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli[Install terraform] for your OS.
+* Create a link:http://confluent.cloud[Confluent Cloud] Account.
+* Confluent CLI (not "required" - but very helpful for the following):
+** link:https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html[Confluent Cloud Login]
+** link:https://docs.confluent.io/confluent-cli/current/command-reference/api-key/confluent_api-key_create.html[Create Cloud API Key]
 
-==== Confluent Cloud Environment
-Let's start by provisioning a Confluent Cloud Environment, including a Kafka cluster and Schema Registry.
-
-In terraform, our environment looks like this:
+=== Disclaimer
+Throughout this repo, you see this added to each terraform resource:
 ```
-resource "confluent_environment" "cc_env" {
-  display_name = var.cc_env_display_name
-
-  lifecycle {
+lifecycle {
     prevent_destroy = false
-  }
 }
 ```
+Per terraform docs, this is not suggested for code in a production or production-like environment. It is added here so
+the Confluent Cloud assets can be destroyed using `terraform destroy` once you're done with this demo (saving you time and money!!!).
 
-Now we can provision a Kafka cluster and Schema Registry:
-[%collapsible]
-====
-```
-resource "confluent_kafka_cluster" "basic" {
-  display_name = var.cc_cluster_name
-  availability = "SINGLE_ZONE"
-  cloud        = var.cloud_provider
-  region       = var.cloud_region
-  basic {}
-  environment {
-    id = confluent_environment.cc_env.id
-  }
-}
-...
+=== Try For Yourself
 
-resource "confluent_schema_registry_cluster" "essentials" {
-  package = data.confluent_schema_registry_region.essentials.package
-
-  environment {
-    id = confluent_environment.cc_env.id
-  }
-
-  region {
-    id = data.confluent_schema_registry_region.essentials.id
-  }
-}
-```
-====
-
-
-==== Kafka Topics and Schemas
-We should create the Kafka topics to which we want to land the data from our API calls.
-
-For Zones, we create a compacted Kafka topic named `NoaaZonesInbound` with 3 partitions:
-[%collapsible]
-====
-```
-resource "confluent_kafka_topic" "noaa_zones_inbound" {
-  kafka_cluster {
-    id = confluent_kafka_cluster.basic.id
-  }
-
-  topic_name    = "NoaaZonesInbound"
-  rest_endpoint = confluent_kafka_cluster.basic.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-kafka-api-key.id
-    secret = confluent_api_key.app-manager-kafka-api-key.secret
-  }
-
-  partitions_count = 3
-  config = {
-    "cleanup.policy" = "compact"
-  }
-
-  depends_on = [
-    confluent_schema_registry_cluster.essentials
-  ]
-}
-```
-====
-
-For our Active Alerts data, we create a compacted Kafka topic named `NoaaAlertsActiveInbound` with 6 partitons:
-[%collapsible]
-====
-```
-resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
-  kafka_cluster {
-    id = confluent_kafka_cluster.basic.id
-  }
-
-  topic_name       = "NoaaAlertsActiveInbound"
-  rest_endpoint      = confluent_kafka_cluster.basic.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-kafka-api-key.id
-    secret = confluent_api_key.app-manager-kafka-api-key.secret
-  }
-
-  partitions_count = 3
-  config = {
-    "cleanup.policy" = "compact"
-  }
-  lifecycle {
-    prevent_destroy = false
-  }
-
-  depends_on = [
-    confluent_schema_registry_cluster.essentials
-  ]
-}
-```
-====
-
-== Next Steps
-
-Now we're ready to load some data into Kafka. For that, see link:terraform/CONNECT.adoc[Sourcing Data with Kafka Connect].
-
-Once data is flowing into Kafka, it's time to transform and enrich that data using Flink SQL. We cover that
-in link:flinksql/README.adoc[Applying Flink SQL].
-
-== Try For Yourself
-
-If you're attending Kafka Summit London, stop by the DevX Pod at the Confluent booth to get promo code for Confluent Cloud.
+** If you're attending Kafka Summit London, stop by the DevX Pod at the Confluent booth to get promo code for Confluent Cloud.
 This should be sufficient for you to try this demo on your own and experiment with the data, connectors, and terraform.
+
+From there, clone this repo and take note of the terraform commands listed in the doc files. If anything is missing, ambiguous, or just
+flat our WRONG, feel free to create an Issue in GitHub and/or submit a PR.
+
+* Clone repo and change to the `terraform` directory of the repo.
+* Use `confleunt login` to authenticate to Confluent Cloud. (see previous section)
+* Use `confluent api-key create` command to create Cloud API Keys and set the following environment variables in the current shell:
+```
+# Linux/Unix/MacOS users...
+export CONFLUENT_CLOUD_API_KEY=<KEY>
+export CONFLUENT_CLOUD_API_SECRET=<SECRET>
+```
+* Initialize the terraform state:
+```
+> terraform init
+Initializing the backend...
+
+Initializing provider plugins...
+- Reusing previous version of confluentinc/confluent from the dependency lock file
+- Using previously-installed confluentinc/confluent v1.66.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+```
+
+* Validate the syntax of the terraform code:
+```
+terraform validate
+│ Warning: Deprecated Resource
+│
+│   with data.confluent_schema_registry_region.essentials,
+│   on kafka-cluster.tf line 3, in data "confluent_schema_registry_region" "essentials":
+│    3: data "confluent_schema_registry_region" "essentials" {
+│
+│ The "schema_registry_region" data source has been deprecated and will be removed in the next major version of the provider (2.0.0). Refer to the Upgrade Guide at https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/guides/version-2-upgrade for more details. The guide will be published once version 2.0.0 is released.
+│
+│ (and one more similar warning elsewhere)
+╵
+Success! The configuration is valid, but there were some validation warnings as shown above.
+```
+IMPORTANT: We're aware of this deprecation warning. When alternative solutions go GA, this will be fixed.
+
+* Create a terraform plan named `tfplan`:
+```
+terraform plan -out "tfplan"
+```
+[%collapsible]
+====
+```
+data.confluent_flink_region.main: Reading...
+data.confluent_flink_region.us-east-2: Reading...
+data.confluent_schema_registry_region.essentials: Reading...
+data.confluent_organization.main: Reading...
+data.confluent_flink_region.us-east-2: Read complete after 1s [id=aws.us-east-2]
+data.confluent_flink_region.main: Read complete after 1s [id=aws.us-east-2]
+data.confluent_schema_registry_region.essentials: Read complete after 1s [id=sgreg-1]
+data.confluent_organization.main: Read complete after 1s [id=2929cae7-840e-47d3-b6f5-67d03587cd01]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # confluent_api_key.app-manager-flink-api-key will be created
+  + resource "confluent_api_key" "app-manager-flink-api-key" {
+      + description            = "Flink API Key that is owned by 'app-manager' service account"
+      + disable_wait_for_ready = false
+      + display_name           = "app-manager-flink-api-key"
+      + id                     = (known after apply)
+      + secret                 = (sensitive value)
+
+      + managed_resource {
+          + api_version = (known after apply)
+          + id          = "aws.us-east-2"
+          + kind        = "Region"
+
+          + environment {
+              + id = (known after apply)
+            }
+        }
+
+      + owner {
+          + api_version = (known after apply)
+          + id          = (known after apply)
+          + kind        = (known after apply)
+        }
+    }
+
+  # confluent_api_key.app-manager-kafka-api-key will be created
+  + resource "confluent_api_key" "app-manager-kafka-api-key" {
+      + description            = "Kafka API Key that is owned by 'app-manager' service account"
+      + disable_wait_for_ready = false
+      + display_name           = "app-manager-kafka-api-key"
+      + id                     = (known after apply)
+      + secret                 = (sensitive value)
+
+      + managed_resource {
+          + api_version = (known after apply)
+          + id          = (known after apply)
+          + kind        = (known after apply)
+
+          + environment {
+              + id = (known after apply)
+            }
+        }
+
+      + owner {
+          + api_version = (known after apply)
+          + id          = (known after apply)
+          + kind        = (known after apply)
+        }
+    }
+
+  # confluent_api_key.env-manager-schema-registry-api-key will be created
+  + resource "confluent_api_key" "env-manager-schema-registry-api-key" {
+      + description            = "Schema Registry API Key that is owned by 'env-manager' service account"
+      + disable_wait_for_ready = false
+      + display_name           = "env-manager-schema-registry-api-key"
+      + id                     = (known after apply)
+      + secret                 = (sensitive value)
+
+      + managed_resource {
+          + api_version = (known after apply)
+          + id          = (known after apply)
+          + kind        = (known after apply)
+
+          + environment {
+              + id = (known after apply)
+            }
+        }
+
+      + owner {
+          + api_version = (known after apply)
+          + id          = (known after apply)
+          + kind        = (known after apply)
+        }
+    }
+
+  # confluent_connector.noaa_alerts_source will be created
+  + resource "confluent_connector" "noaa_alerts_source" {
+      + config_nonsensitive = (known after apply)
+      + config_sensitive    = (sensitive value)
+      + id                  = (known after apply)
+      + status              = (known after apply)
+
+      + environment {
+          + id = (known after apply)
+        }
+
+      + kafka_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_connector.noaa_zones_source will be created
+  + resource "confluent_connector" "noaa_zones_source" {
+      + config_nonsensitive = (known after apply)
+      + config_sensitive    = (sensitive value)
+      + id                  = (known after apply)
+      + status              = (known after apply)
+
+      + environment {
+          + id = (known after apply)
+        }
+
+      + kafka_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_environment.cc_env will be created
+  + resource "confluent_environment" "cc_env" {
+      + display_name  = "weather-streams"
+      + id            = (known after apply)
+      + resource_name = (known after apply)
+    }
+
+  # confluent_flink_compute_pool.weather_compute_pool_1 will be created
+  + resource "confluent_flink_compute_pool" "weather_compute_pool_1" {
+      + api_version   = (known after apply)
+      + cloud         = "AWS"
+      + display_name  = "weather_compute_pool_1"
+      + id            = (known after apply)
+      + kind          = (known after apply)
+      + max_cfu       = 10
+      + region        = "us-east-2"
+      + resource_name = (known after apply)
+
+      + environment {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_kafka_cluster.basic will be created
+  + resource "confluent_kafka_cluster" "basic" {
+      + api_version        = (known after apply)
+      + availability       = "SINGLE_ZONE"
+      + bootstrap_endpoint = (known after apply)
+      + cloud              = "AWS"
+      + display_name       = "weather-cluster-1"
+      + id                 = (known after apply)
+      + kind               = (known after apply)
+      + rbac_crn           = (known after apply)
+      + region             = "us-east-2"
+      + rest_endpoint      = (known after apply)
+
+      + basic {}
+
+      + environment {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_kafka_topic.noaa_alerts_active_inbound will be created
+  + resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
+      + config           = {
+          + "cleanup.policy" = "delete"
+        }
+      + id               = (known after apply)
+      + partitions_count = 3
+      + rest_endpoint    = (known after apply)
+      + topic_name       = "NoaaAlertsActiveInbound"
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + kafka_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_kafka_topic.noaa_zones_inbound will be created
+  + resource "confluent_kafka_topic" "noaa_zones_inbound" {
+      + config           = {
+          + "cleanup.policy" = "delete"
+        }
+      + id               = (known after apply)
+      + partitions_count = 3
+      + rest_endpoint    = (known after apply)
+      + topic_name       = "NoaaZonesInbound"
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + kafka_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_role_binding.app-manager-assigner will be created
+  + resource "confluent_role_binding" "app-manager-assigner" {
+      + crn_pattern = (known after apply)
+      + id          = (known after apply)
+      + principal   = (known after apply)
+      + role_name   = "Assigner"
+    }
+
+  # confluent_role_binding.app-manager-flink-developer will be created
+  + resource "confluent_role_binding" "app-manager-flink-developer" {
+      + crn_pattern = (known after apply)
+      + id          = (known after apply)
+      + principal   = (known after apply)
+      + role_name   = "FlinkAdmin"
+    }
+
+  # confluent_role_binding.app-manager-kafka-cluster-admin will be created
+  + resource "confluent_role_binding" "app-manager-kafka-cluster-admin" {
+      + crn_pattern = (known after apply)
+      + id          = (known after apply)
+      + principal   = (known after apply)
+      + role_name   = "CloudClusterAdmin"
+    }
+
+  # confluent_role_binding.env-manager-environment-admin will be created
+  + resource "confluent_role_binding" "env-manager-environment-admin" {
+      + crn_pattern = (known after apply)
+      + id          = (known after apply)
+      + principal   = (known after apply)
+      + role_name   = "EnvironmentAdmin"
+    }
+
+  # confluent_role_binding.statements-runner-environment-admin will be created
+  + resource "confluent_role_binding" "statements-runner-environment-admin" {
+      + crn_pattern = (known after apply)
+      + id          = (known after apply)
+      + principal   = (known after apply)
+      + role_name   = "EnvironmentAdmin"
+    }
+
+  # confluent_schema.noaa_alerts_active_inbound_value will be created
+  + resource "confluent_schema" "noaa_alerts_active_inbound_value" {
+      + format             = "AVRO"
+      + hard_delete        = false
+      + id                 = (known after apply)
+      + recreate_on_update = false
+      + rest_endpoint      = (known after apply)
+      + schema             = jsonencode(
+            {
+              + fields    = [
+                  + {
+                      + name = "id"
+                      + type = "string"
+                    },
+                  + {
+                      + name = "type"
+                      + type = "string"
+                    },
+                  + {
+                      + default = null
+                      + name    = "geometry"
+                      + type    = [
+                          + "null",
+                          + {
+                              + "connect.name" = "geometry"
+                              + fields         = [
+                                  + {
+                                      + name = "type"
+                                      + type = "string"
+                                    },
+                                  + {
+                                      + name = "coordinates"
+                                      + type = {
+                                          + items = {
+                                              + items = {
+                                                  + items = "double"
+                                                  + type  = "array"
+                                                }
+                                              + type  = "array"
+                                            }
+                                          + type  = "array"
+                                        }
+                                    },
+                                ]
+                              + name           = "geometry"
+                              + type           = "record"
+                            },
+                        ]
+                    },
+                  + {
+                      + name = "properties"
+                      + type = {
+                          + "connect.name" = "properties"
+                          + fields         = [
+                              + {
+                                  + name = "x_40id"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "x_40type"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "id"
+                                  + type = "string"
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "areaDesc"
+                                  + type    = [
+                                      + "null",
+                                      + "string",
+                                    ]
+                                },
+                              + {
+                                  + name = "geocode"
+                                  + type = {
+                                      + "connect.name" = "properties.geocode"
+                                      + fields         = [
+                                          + {
+                                              + default = null
+                                              + name    = "SAME"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "UGC"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                        ]
+                                      + name           = "geocode"
+                                      + namespace      = "properties"
+                                      + type           = "record"
+                                    }
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "affectedZones"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + items = "string"
+                                          + type  = "array"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + name = "references"
+                                  + type = {
+                                      + items = {
+                                          + "connect.name" = "properties.references"
+                                          + fields         = [
+                                              + {
+                                                  + name = "x_40id"
+                                                  + type = "string"
+                                                },
+                                              + {
+                                                  + name = "identifier"
+                                                  + type = "string"
+                                                },
+                                              + {
+                                                  + name = "sender"
+                                                  + type = "string"
+                                                },
+                                              + {
+                                                  + name = "sent"
+                                                  + type = {
+                                                      + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                                      + "connect.version" = 1
+                                                      + logicalType       = "timestamp-millis"
+                                                      + type              = "long"
+                                                    }
+                                                },
+                                            ]
+                                          + name           = "references"
+                                          + namespace      = "properties"
+                                          + type           = "record"
+                                        }
+                                      + type  = "array"
+                                    }
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "sent"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                          + "connect.version" = 1
+                                          + logicalType       = "timestamp-millis"
+                                          + type              = "long"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "effective"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                          + "connect.version" = 1
+                                          + logicalType       = "timestamp-millis"
+                                          + type              = "long"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "onset"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                          + "connect.version" = 1
+                                          + logicalType       = "timestamp-millis"
+                                          + type              = "long"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "expires"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                          + "connect.version" = 1
+                                          + logicalType       = "timestamp-millis"
+                                          + type              = "long"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "ends"
+                                  + type    = [
+                                      + "null",
+                                      + {
+                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                          + "connect.version" = 1
+                                          + logicalType       = "timestamp-millis"
+                                          + type              = "long"
+                                        },
+                                    ]
+                                },
+                              + {
+                                  + name = "status"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "messageType"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "category"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "severity"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "certainty"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "urgency"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "event"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "sender"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "senderName"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "headline"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "description"
+                                  + type = "string"
+                                },
+                              + {
+                                  + default = null
+                                  + name    = "instruction"
+                                  + type    = [
+                                      + "null",
+                                      + "string",
+                                    ]
+                                },
+                              + {
+                                  + name = "response"
+                                  + type = "string"
+                                },
+                              + {
+                                  + name = "parameters"
+                                  + type = {
+                                      + "connect.name" = "properties.parameters"
+                                      + fields         = [
+                                          + {
+                                              + default = null
+                                              + name    = "AWIPSidentifier"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "WMOidentifier"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "NWSheadline"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "BLOCKCHANNEL"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "EAS_ORG"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "VTEC"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "eventEndingTime"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = {
+                                                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                                                          + "connect.version" = 1
+                                                          + logicalType       = "timestamp-millis"
+                                                          + type              = "long"
+                                                        }
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                          + {
+                                              + default = null
+                                              + name    = "expiredReferences"
+                                              + type    = [
+                                                  + "null",
+                                                  + {
+                                                      + items = "string"
+                                                      + type  = "array"
+                                                    },
+                                                ]
+                                            },
+                                        ]
+                                      + name           = "parameters"
+                                      + namespace      = "properties"
+                                      + type           = "record"
+                                    }
+                                },
+                            ]
+                          + name           = "properties"
+                          + type           = "record"
+                        }
+                    },
+                ]
+              + name      = "ConnectDefault"
+              + namespace = "io.confluent.connect.avro"
+              + type      = "record"
+            }
+        )
+      + schema_identifier  = (known after apply)
+      + subject_name       = "NoaaAlertsActiveInbound-value"
+      + version            = (known after apply)
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + schema_registry_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_schema.noaa_zones_inbound_value will be created
+  + resource "confluent_schema" "noaa_zones_inbound_value" {
+      + format             = "AVRO"
+      + hard_delete        = false
+      + id                 = (known after apply)
+      + recreate_on_update = false
+      + rest_endpoint      = (known after apply)
+      + schema             = jsonencode(
+            {
+              + fields    = [
+                  + {
+                      + default = null
+                      + name    = "geometry"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + default = null
+                      + name    = "url"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + default = null
+                      + name    = "wxObjectType"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + default = null
+                      + name    = "id"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + default = null
+                      + name    = "zoneType"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + default = null
+                      + name    = "name"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + name = "effectiveDate"
+                      + type = {
+                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                          + "connect.version" = 1
+                          + logicalType       = "timestamp-millis"
+                          + type              = "long"
+                        }
+                    },
+                  + {
+                      + name = "expirationDate"
+                      + type = {
+                          + "connect.name"    = "org.apache.kafka.connect.data.Timestamp"
+                          + "connect.version" = 1
+                          + logicalType       = "timestamp-millis"
+                          + type              = "long"
+                        }
+                    },
+                  + {
+                      + default = null
+                      + name    = "state"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                  + {
+                      + name = "cwas"
+                      + type = {
+                          + items = "string"
+                          + type  = "array"
+                        }
+                    },
+                  + {
+                      + name = "forecastOffices"
+                      + type = {
+                          + items = "string"
+                          + type  = "array"
+                        }
+                    },
+                  + {
+                      + name = "timeZones"
+                      + type = {
+                          + items = "string"
+                          + type  = "array"
+                        }
+                    },
+                  + {
+                      + name = "observationStations"
+                      + type = {
+                          + items = "string"
+                          + type  = "array"
+                        }
+                    },
+                  + {
+                      + default = null
+                      + name    = "radarStation"
+                      + type    = [
+                          + "null",
+                          + "string",
+                        ]
+                    },
+                ]
+              + name      = "ConnectDefault"
+              + namespace = "io.confluent.connect.avro"
+              + type      = "record"
+            }
+        )
+      + schema_identifier  = (known after apply)
+      + subject_name       = "NoaaZonesInbound-value"
+      + version            = (known after apply)
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + schema_registry_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_schema_registry_cluster.essentials will be created
+  + resource "confluent_schema_registry_cluster" "essentials" {
+      + api_version   = (known after apply)
+      + display_name  = (known after apply)
+      + id            = (known after apply)
+      + kind          = (known after apply)
+      + package       = "ESSENTIALS"
+      + resource_name = (known after apply)
+      + rest_endpoint = (known after apply)
+
+      + environment {
+          + id = (known after apply)
+        }
+
+      + region {
+          + id = "sgreg-1"
+        }
+    }
+
+  # confluent_service_account.app-manager will be created
+  + resource "confluent_service_account" "app-manager" {
+      + api_version  = (known after apply)
+      + description  = "Service account to manage 'weather-streams' Kafka cluster"
+      + display_name = "weather-streams-app-manager"
+      + id           = (known after apply)
+      + kind         = (known after apply)
+    }
+
+  # confluent_service_account.env-manager will be created
+  + resource "confluent_service_account" "env-manager" {
+      + api_version  = (known after apply)
+      + description  = "Service account to manage 'Staging' environment"
+      + display_name = "weather-streams-env-manager"
+      + id           = (known after apply)
+      + kind         = (known after apply)
+    }
+
+  # confluent_service_account.statements-runner will be created
+  + resource "confluent_service_account" "statements-runner" {
+      + api_version  = (known after apply)
+      + description  = "Service account for running Flink Statements in 'inventory' Kafka cluster"
+      + display_name = "weather-streams-statements-runner"
+      + id           = (known after apply)
+      + kind         = (known after apply)
+    }
+
+  # confluent_subject_config.noaa_alerts_active_inbound_value_cfg will be created
+  + resource "confluent_subject_config" "noaa_alerts_active_inbound_value_cfg" {
+      + compatibility_level = "NONE"
+      + id                  = (known after apply)
+      + rest_endpoint       = (known after apply)
+      + subject_name        = "NoaaAlertsActiveInbound-value"
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + schema_registry_cluster {
+          + id = (known after apply)
+        }
+    }
+
+  # confluent_subject_config.noaa_zones_inbound_value_cfg will be created
+  + resource "confluent_subject_config" "noaa_zones_inbound_value_cfg" {
+      + compatibility_level = "NONE"
+      + id                  = (known after apply)
+      + rest_endpoint       = (known after apply)
+      + subject_name        = "NoaaZonesInbound-value"
+
+      + credentials {
+          + key    = (sensitive value)
+          + secret = (sensitive value)
+        }
+
+      + schema_registry_cluster {
+          + id = (known after apply)
+        }
+    }
+
+Plan: 23 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + cc_env_display_name                        = "weather-streams"
+  + cc_env_id                                  = (known after apply)
+  + cc_kafka_cluster_bootstrap_endpoint        = (known after apply)
+  + cc_kafka_cluster_id                        = (known after apply)
+  + cc_kafka_cluster_rest_endpoint             = (known after apply)
+  + cc_schema_registry_endpoint                = (known after apply)
+  + cc_schema_registry_id                      = (known after apply)
+  + flink_weather_compute_pool_1_display_name  = "weather_compute_pool_1"
+  + flink_weather_compute_pool_1_id            = (known after apply)
+  + flink_weather_compute_pool_1_resource_name = (known after apply)
+  + flink_weather_compute_pool_1_rest_endpoint = "https://flink.us-east-2.aws.confluent.cloud"
+  + key_id                                     = (known after apply)
+  + key_secret                                 = (known after apply)
+  + sr_key_id                                  = (known after apply)
+  + sr_key_secret                              = (known after apply)
+  + topic_name_noa_active_alerts_id            = "NoaaAlertsActiveInbound"
+  + topic_name_noa_zones_in                    = "NoaaZonesInbound"
+╷
+│ Warning: Deprecated Resource
+│
+│   with data.confluent_schema_registry_region.essentials,
+│   on kafka-cluster.tf line 3, in data "confluent_schema_registry_region" "essentials":
+│    3: data "confluent_schema_registry_region" "essentials" {
+│
+│ The "schema_registry_region" data source has been deprecated and will be removed in the next major version of the provider (2.0.0). Refer to the Upgrade Guide at https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/guides/version-2-upgrade for more details. The guide will be published once version 2.0.0 is released.
+│
+│ (and 3 more similar warnings elsewhere)
+╵
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+====
+
+* As the output of the previous command says, time to "apply" the planned changes:
+```
+terraform apply "tfplan"
+```
+[%collapsible]
+====
+```
+...
+confluent_connector.noaa_alerts_source: Creation complete after 6m11s [id=lcc-qz2mq7]
+╷
+│ Warning: Deprecated Resource
+│
+│   with confluent_schema_registry_cluster.essentials,
+│   on kafka-cluster.tf line 9, in resource "confluent_schema_registry_cluster" "essentials":
+│    9: resource "confluent_schema_registry_cluster" "essentials" {
+│
+│ The "schema_registry_cluster" resource has been deprecated and will be removed in the next major version of the provider (2.0.0). Refer to the Upgrade Guide at https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/guides/version-2-upgrade for more details. The guide will be published once version 2.0.0 is released.
+╵
+
+Apply complete! Resources: 23 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+cc_env_display_name = "weather-streams"
+cc_env_id = "..."
+cc_kafka_cluster_bootstrap_endpoint = "SASL_SSL://....us-east-2.aws.confluent.cloud:9092"
+cc_kafka_cluster_id = "..."
+cc_kafka_cluster_rest_endpoint = "https://....us-east-2.aws.confluent.cloud:443"
+cc_schema_registry_endpoint = "https://....us-east-2.aws.confluent.cloud"
+cc_schema_registry_id = "..."
+flink_weather_compute_pool_1_display_name = "weather_compute_pool_1"
+flink_weather_compute_pool_1_id = "..."
+flink_weather_compute_pool_1_resource_name = "crn://confluent.cloud/organization=...../environment=env-o217dx/flink-region=aws.us-east-2/compute-pool=..."
+flink_weather_compute_pool_1_rest_endpoint = "https://flink.us-east-2.aws.confluent.cloud"
+topic_name_noa_active_alerts_id = "NoaaAlertsActiveInbound"
+topic_name_noa_zones_in = "NoaaZonesInbound"
+```
+====
+
+In approximately 6 minutes, we have a Kafka Cluster, Schema Registry, Kafka Topics, registered Avro schemas, HTTP Connectors,
+and a Flink Compute Pool. If configuration changes are needed for these assets, make the changes to the corresponding
+terraform resource, then run the `terraform plan` and `terraform apply` steps again.
+
+

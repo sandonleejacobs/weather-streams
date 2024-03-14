@@ -118,3 +118,7 @@ For the active alerts data, we only need one transformation - to create a key fo
 "transforms.MakeEventKey.fields"        = "id"
 ```
 ====
+
+== Next Steps
+Once data is flowing into Kafka, it's time to transform and enrich that data using Flink SQL. We cover that
+in link:../flinksql/README.adoc[Applying Flink SQL].

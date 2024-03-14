@@ -7,13 +7,6 @@ resource "confluent_flink_compute_pool" "weather_compute_pool_1" {
     id = confluent_environment.cc_env.id
   }
 
-#   depends_on = [
-#     confluent_role_binding.statements-runner-environment-admin,
-#     confluent_role_binding.app-manager-assigner,
-#     confluent_role_binding.app-manager-flink-developer,
-#     confluent_api_key.app-manager-flink-api-key
-#   ]
-
   lifecycle {
     prevent_destroy = false
   }
