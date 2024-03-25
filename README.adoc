@@ -47,7 +47,19 @@ From there, clone this repo and take note of the terraform commands listed in th
 flat our WRONG, feel free to create an Issue in GitHub and/or submit a PR.
 
 * Clone repo and change to the `terraform` directory of the repo.
+* Use `confluent organization list` to get the value of organization ID. Needed to set as a terraform variable.
+```
+> confluent organization list
+  Current |                  ID                  |   Name    | JIT Enabled
+----------+--------------------------------------+-----------+--------------
+  *       | <UUID VALUE FOR ORGANIZATION ID>     | My Org    | false
+```
 * Use `confleunt login` to authenticate to Confluent Cloud. (see previous section)
+```
+> confluent login --prompt --save
+Email Address: <your email used in CC account>
+Password: *********
+```
 * Use `confluent api-key create` command to create Cloud API Keys and set the following environment variables in the current shell:
 ```
 # Linux/Unix/MacOS users...
@@ -91,9 +103,9 @@ Success! The configuration is valid, but there were some validation warnings as 
 ```
 IMPORTANT: We're aware of this deprecation warning. When alternative solutions go GA, this will be fixed.
 
-* Create a terraform plan named `tfplan`:
+* Create a terraform plan named `tfplan`, using your organization ID as a variable value:
 ```
-terraform plan -out "tfplan"
+terraform plan -out "tfplan" -var org_id=24dcc3ed-963b-44c7-90ce-e5e021631d44
 ```
 [%collapsible]
 ====
