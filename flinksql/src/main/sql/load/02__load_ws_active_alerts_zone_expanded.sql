@@ -1,12 +1,9 @@
-insert into ws_active_alerts_by_zone select
+insert into ws_active_alerts_zone_expanded select
     active.`id` as `alertId`,
     `ActiveAlertsByUgcCode`.geocodeugc as `zoneId`,
-    zone.`url` as `zoneUrl`,
     active.`event` as `event`,
     active.`status` as `alertStatus`,
     active.`messageType` as `alertMessageType`,
-    zone.`name` as `zoneName`,
-    zone.`state` as `zoneState`,
     active.`category` as `category`,
     active.`severity` as `severity`,
     active.`urgency` as `urgency`,
@@ -14,15 +11,13 @@ insert into ws_active_alerts_by_zone select
     active.`description` as `description`,
     active.`instruction` as `instruction`,
     active.`response` as `response`,
-    zone.`geometry` as `zoneGeometry`,
     active.`sent` as `sentTs`,
     active.`sender` as `sender`,
     active.`onset` as `onsetTs`,
     active.`effective` as `effectiveTs`,
     active.`expires` as `expiryTs`,
     active.`ends` as `endTs`,
-    active.`NWSheadline` as `nwsHeadline`
+    active.`NWSheadline` as `nwsHeadline`,
+    active.`eventTs` as `eventTs`
 from ws_active_alerts active
-    CROSS JOIN UNNEST(active.geocodeUGC) as `ActiveAlertsByUgcCode`(geocodeugc)
-inner join NoaaZonesInbound zone
-    on `ActiveAlertsByUgcCode`.geocodeugc = zone.id;
+    CROSS JOIN UNNEST(active.geocodeUGC) as `ActiveAlertsByUgcCode`(geocodeugc);

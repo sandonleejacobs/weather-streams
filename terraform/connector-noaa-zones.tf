@@ -19,13 +19,12 @@ resource "confluent_connector" "noaa_zones_source" {
     "tasks.max"                = "1"
     "topic.name.pattern"       = confluent_kafka_topic.noaa_zones_inbound.topic_name
     "url"                      = "https://api.weather.gov/zones"
-    "http.request.parameters"  = "type=land"
     "http.offset.mode"         = "SIMPLE_INCREMENTING"
     "http.initial.offset"      = "0"
     "http.response.data.json.pointer" = "/features"
-    "request.interval.ms"      = 1800000
+    "request.interval.ms"      = 600000
 
-    "transforms"                            = "DropUnusedFields,Flatten,RenameFields,MakeEventKey"
+    "transforms"                            = "DropUnusedFields,Flatten,RenameFields,DropUnusedFlattenedFields,MakeEventKey"
     "transforms.DropUnusedFields.type"      = "org.apache.kafka.connect.transforms.ReplaceField$Value"
     "transforms.DropUnusedFields.exclude"   = "id,type"
 
@@ -34,6 +33,9 @@ resource "confluent_connector" "noaa_zones_source" {
 
     "transforms.RenameFields.type"          = "org.apache.kafka.connect.transforms.ReplaceField$Value"
     "transforms.RenameFields.renames"       = "properties_@id:url,properties_@type:wxObjectType,properties_id:id,properties_type:zoneType,properties_name:name,properties_effectiveDate:effectiveDate,properties_expirationDate:expirationDate,properties_state:state,properties_cwa:cwas,properties_forecastOffices:forecastOffices,properties_timeZone:timeZones,properties_observationStations:observationStations,properties_radarStation:radarStation"
+
+    "transforms.DropUnusedFlattenedFields.type"      = "org.apache.kafka.connect.transforms.ReplaceField$Value"
+    "transforms.DropUnusedFlattenedFields.exclude"   = "observationStations"
 
     "transforms.MakeEventKey.type"          = "org.apache.kafka.connect.transforms.ValueToKey"
     "transforms.MakeEventKey.fields"        = "id"

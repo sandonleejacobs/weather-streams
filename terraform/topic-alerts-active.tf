@@ -14,6 +14,7 @@ resource "confluent_kafka_topic" "noaa_alerts_active_inbound" {
   partitions_count = 3
   config = {
     "cleanup.policy" = "delete"
+    "retention.ms" = 300000
   }
   lifecycle {
     prevent_destroy = false

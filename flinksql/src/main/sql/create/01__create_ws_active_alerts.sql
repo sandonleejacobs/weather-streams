@@ -25,5 +25,11 @@ create table ws_active_alerts (
     `NWSheadline` ARRAY<STRING>,
     `eventEndingTime` ARRAY<TIMESTAMP(3)>,
     `expiredReferences` ARRAY<STRING>,
-    WATERMARK for `onset` AS `onset` - INTERVAL '5' MINUTE)
-with ('value.format' = 'avro-registry', 'changelog.mode' = 'upsert', 'kafka.cleanup-policy' = 'delete');
+    `eventTs` TIMESTAMP_LTZ(3) METADATA FROM 'timestamp',
+    WATERMARK FOR `eventTs` as `eventTs` - INTERVAL '5' MINUTES
+)
+DISTRIBUTED BY (`id`) INTO 3 BUCKETS
+WITH (
+    'value.format' = 'avro-registry',
+    'kafka.cleanup-policy' = 'delete',
+    'kafka.retention.time' = '5 minutes');

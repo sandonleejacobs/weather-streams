@@ -13,7 +13,7 @@ resource "confluent_kafka_topic" "noaa_zones_inbound" {
 
   partitions_count = 3
   config           = {
-    "cleanup.policy" = "delete"
+    "cleanup.policy" = "compact"
   }
   lifecycle {
     prevent_destroy = false
