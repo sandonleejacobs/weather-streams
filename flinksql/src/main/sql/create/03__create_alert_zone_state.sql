@@ -1,7 +1,5 @@
-create table ws_active_alerts_zone_states (
+create table ws_active_alert_states (
     `alertId` STRING,
-    `zoneId` STRING,
-    `zoneUrl` STRING,
     `state` STRING,
     `status` STRING,
     `category` STRING,
@@ -11,10 +9,11 @@ create table ws_active_alerts_zone_states (
     `effectiveTs` TIMESTAMP_LTZ(3),
     `expiryTs` TIMESTAMP_LTZ(3),
     `endTs` TIMESTAMP_LTZ(3),
-    PRIMARY KEY (`alertId`, `zoneId`) NOT ENFORCED
-) DISTRIBUTED BY (`alertId`, `zoneId`) INTO 3 BUCKETS
+    `eventTs` TIMESTAMP_LTZ(3) METADATA FROM 'timestamp',
+    WATERMARK FOR `eventTs` as `eventTs` - INTERVAL '5' MINUTES,
+    PRIMARY KEY (`alertId`) NOT ENFORCED
+) DISTRIBUTED BY (`alertId`) INTO 3 BUCKETS
 WITH (
-    'key.format' = 'avro-registry',
     'value.format' = 'avro-registry',
-    'changelog.mode' = 'upsert',
-    'kafka.cleanup-policy' = 'compact');
+    'kafka.cleanup-policy' = 'delete',
+    'kafka.retention.time' = '10 minutes');
