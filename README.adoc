@@ -40,33 +40,52 @@ the Confluent Cloud assets can be destroyed using `terraform destroy` once you'r
 
 === Try For Yourself
 
-** If you're attending Kafka Summit London, stop by the DevX Pod at the Confluent booth to get promo code for Confluent Cloud.
-This should be sufficient for you to try this demo on your own and experiment with the data, connectors, and terraform.
-
-From there, clone this repo and take note of the terraform commands listed in the doc files. If anything is missing, ambiguous, or just
+Clone this repo and take note of the terraform commands listed in the doc files. If anything is missing, ambiguous, or just
 flat our WRONG, feel free to create an Issue in GitHub and/or submit a PR.
 
-* Clone repo and change to the `terraform` directory of the repo.
-* Use `confluent organization list` to get the value of organization ID. Needed to set as a terraform variable.
-```
-> confluent organization list
-  Current |                  ID                  |   Name    | JIT Enabled
-----------+--------------------------------------+-----------+--------------
-  *       | <UUID VALUE FOR ORGANIZATION ID>     | My Org    | false
-```
-* Use `confleunt login` to authenticate to Confluent Cloud. (see previous section)
+Clone the repo and change to the `terraform` directory of the repo.
+
+==== Login to Confluent Cloud
+Via the Confluent CLI, let's log into your Confluent Cloud account:
+
 ```
 > confluent login --prompt --save
 Email Address: <your email used in CC account>
 Password: *********
 ```
-* Use `confluent api-key create` command to create Cloud API Keys and set the following environment variables in the current shell:
+
+==== Get Confluent Cloud Organization ID
+Let's use the Confluent CLI to get the organization ID value. In concert with `jq` and a little shell-fu, we can save
+this value to an environment variable prefixed with `TF_VAR` - which will be utilized by terraform in later steps.
+Use an `echo` command to validate this value was set:
+
+```
+> export TF_VAR_org_id=$(confluent organization list -o json | jq -r '.[] | select(.is_current)' | jq -r '.id')
+> echo $TF_VAR_org_id
+f04363eb-a4cb-450b-8d17-83317e50d2ee # just an example, not a REAL VALUE
+```
+
+==== Generate an API Key
+
+Use `confluent api-key create` command to create Cloud API Keys and set the following environment variables in the current shell:
+```
+> confluent api-key create --resource cloud -o json
+{
+  "api_key": "<API_KEY_VALUE>",
+  "api_secret": "<API_SECRET_VALUE>"
+}
+```
+
+Take this result and set environment variables in the current session, as follows:
 ```
 # Linux/Unix/MacOS users...
-export CONFLUENT_CLOUD_API_KEY=<KEY>
-export CONFLUENT_CLOUD_API_SECRET=<SECRET>
+export CONFLUENT_CLOUD_API_KEY=<API_KEY_VALUE>
+export CONFLUENT_CLOUD_API_SECRET=<API_SECRET_VALUE>
 ```
-* Initialize the terraform state:
+
+=== Get Started with Terraform
+
+==== Initialize the terraform state
 ```
 > terraform init
 Initializing the backend...
@@ -86,7 +105,9 @@ rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 ```
 
-* Validate the syntax of the terraform code:
+==== Validate Terraform Syntax
+`terraform validate` does just that, it validates the syntax of our resources:
+
 ```
 terraform validate
 │ Warning: Deprecated Resource
@@ -103,9 +124,11 @@ Success! The configuration is valid, but there were some validation warnings as 
 ```
 IMPORTANT: We're aware of this deprecation warning. When alternative solutions go GA, this will be fixed.
 
-* Create a terraform plan named `tfplan`, using your organization ID as a variable value:
+=== Terraform Plan and Apply
+
+Create a terraform plan named `tfplan`, using your organization ID as a variable value:
 ```
-terraform plan -out "tfplan" -var org_id=24dcc3ed-963b-44c7-90ce-e5e021631d44
+terraform plan -out "tfplan"
 ```
 [%collapsible]
 ====
@@ -1058,7 +1081,17 @@ topic_name_noa_zones_in = "NoaaZonesInbound"
 ====
 
 In approximately 6 minutes, we have a Kafka Cluster, Schema Registry, Kafka Topics, registered Avro schemas, HTTP Connectors,
-and a Flink Compute Pool. If configuration changes are needed for these assets, make the changes to the corresponding
+a Flink Compute Pool and several Flink SQL Statements. If configuration changes are needed for these assets, make the changes to the corresponding
 terraform resource, then run the `terraform plan` and `terraform apply` steps again.
+
+== Next Steps
+At this point, data should be flowing from the HTTP endpoints via Kafka Connect into Kafka, and transformations on that data
+are running via the deployed Flink SQL Statements.
+
+For more explanation of the resources created:
+* link:terraform/README.adoc[Terraform Managed Resources]
+* link:terraform/CONNECT.adoc[About the Kafka Connectors]
+* link:flinksql/README.adoc[About the Flink Statements]
+
 
 
