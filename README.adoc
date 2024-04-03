@@ -1088,7 +1088,7 @@ terraform resource, then run the `terraform plan` and `terraform apply` steps ag
 At this point, data should be flowing from the HTTP endpoints via Kafka Connect into Kafka, and transformations on that data
 are running via the deployed Flink SQL Statements.
 
-For more explanation of the resources created:
+.For more explanation of the resources created:
 * link:terraform/README.adoc[Terraform Managed Resources]
 * link:terraform/CONNECT.adoc[About the Kafka Connectors]
 * link:flinksql/README.adoc[About the Flink Statements]
