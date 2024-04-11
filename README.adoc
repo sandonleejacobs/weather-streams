@@ -28,15 +28,6 @@ the data from the NOAA APIs.
 ** link:https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html[Confluent Cloud Login]
 ** link:https://docs.confluent.io/confluent-cli/current/command-reference/api-key/confluent_api-key_create.html[Create Cloud API Key]
 
-=== Disclaimer
-Throughout this repo, you see this added to each terraform resource:
-```
-lifecycle {
-    prevent_destroy = false
-}
-```
-Per terraform docs, this is not suggested for code in a production or production-like environment. It is added here so
-the Confluent Cloud assets can be destroyed using `terraform destroy` once you're done with this demo (saving you time and money!!!).
 
 === Try For Yourself
 
@@ -1092,6 +1083,18 @@ are running via the deployed Flink SQL Statements.
 * link:terraform/README.adoc[Terraform Managed Resources]
 * link:terraform/CONNECT.adoc[About the Kafka Connectors]
 * link:flinksql/README.adoc[About the Flink Statements]
+
+
+== Disclaimer
+Throughout this repo, you see this added to each terraform resource:
+```
+lifecycle {
+    prevent_destroy = false
+}
+```
+Per terraform docs, this is not suggested for code in a production or production-like environment. It is added here so
+the Confluent Cloud assets can be destroyed using `terraform destroy` once you're done with this demo (saving you time and money!!!).
+
 
 
 
