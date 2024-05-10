@@ -68,6 +68,7 @@ resource "confluent_subject_config" "noaa_zones_inbound_value_cfg" {
   }
 
   depends_on = [
-    confluent_schema.noaa_zones_inbound_value
+    confluent_schema.noaa_zones_inbound_value,
+    confluent_kafka_topic.noaa_zones_inbound
   ]
 }
